@@ -1,7 +1,11 @@
-output "file_name" {
-  value = local_file.hello.filename
+output "container_name" {
+  value = docker_container.nginx.name
 }
 
-output "file_content" {
-  value = local_file.hello.content
+output "container_id" {
+  value = docker_container.nginx.id
+}
+
+output "image_name" {
+  value = docker_image.nginx.name
 }
