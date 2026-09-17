@@ -42,3 +42,16 @@ Currently practicing Terraform with:
 ## Goal
 
 Build strong practical knowledge of Terraform and use it for real-world DevOps infrastructure automation.
+
+
+
+Lab 1  → Docker Container
+Lab 2  → Docker Network
+Lab 3  → Multiple Containers
+Lab 4  → Variables
+Lab 5  → count / for_each
+Lab 6  → Docker Volume
+Lab 7  → Kubernetes
+Lab 8  → Terraform Modules
+Lab 9  → Remote State
+Lab 10 → Azure
