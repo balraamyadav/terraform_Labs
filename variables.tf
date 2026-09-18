@@ -29,7 +29,18 @@ variable "nginx_image" {
 }
 
 variable "container_count" {
-  description = "Number of Nginx containers"
+  description = "Number of Nginx containers for count example"
   type        = number
   default     = 3
+}
+
+variable "containers" {
+  description = "Nginx containers with their external ports"
+  type        = map(number)
+
+  default = {
+    frontend = 8080
+    backend  = 8081
+    admin    = 8082
+  }
 }
