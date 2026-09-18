@@ -27,3 +27,9 @@ variable "nginx_image" {
   type        = string
   default     = "nginx:latest"
 }
+
+variable "container_count" {
+  description = "Number of Nginx containers"
+  type        = number
+  default     = 3
+}

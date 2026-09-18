@@ -18,7 +18,9 @@ resource "docker_image" "nginx" {
 }
 
 resource "docker_container" "nginx" {
-  name  = var.container_name
+  count = var.container_count
+
+  name  = "terraform-nginx-${count.index + 1}"
   image = docker_image.nginx.image_id
 
   networks_advanced {
@@ -27,6 +29,6 @@ resource "docker_container" "nginx" {
 
   ports {
     internal = var.internal_port
-    external = var.external_port
+    external = var.external_port + count.index
   }
 }
