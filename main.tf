@@ -1,33 +1,54 @@
 terraform {
   required_providers {
-    local = {
-      source  = "hashicorp/local"
-      version = "~> 2.5"
+    docker = {
+      source  = "kreuzwerker/docker"
+      version = "~> 3.0"
     }
   }
 }
 
-provider "local" {}
+provider "docker" {}
 
-resource "local_file" "hello" {
-  filename = "${path.module}/${var.filename}"
-  content  = var.content
-}
-# resource "local_file" "practice" {
-#   count    = 3
-#   filename = "${path.module}/practice-${count.index}.txt"
-#   content  = "Terraform practice file ${count.index}"
-# }
-
-
-resource "local_file" "practice" {
-  for_each = toset(["dev", "qa", "prod"])
-
-  filename = "${path.module}/${each.key}.txt"
-  content  = "Environment: ${each.key}"
+resource "docker_network" "app_network" {
+  name = "${local.container_prefix}-${local.environment}-network"
 }
 
+resource "docker_image" "nginx" {
+  name = var.nginx_image
+}
 
+resource "docker_container" "nginx" {
+  for_each = var.containers
 
+  name  = "${local.container_prefix}-${each.key}"
+  image = docker_image.nginx.image_id
 
+  networks_advanced {
+    name = docker_network.app_network.name
+  }
 
+  ports {
+    internal = var.internal_port
+    external = each.value
+  }
+
+  labels {
+    label = "environment"
+    value = local.environment
+  }
+
+  labels {
+    label = "project"
+    value = local.project_name
+  }
+
+  labels {
+    label = "application"
+    value = local.application
+  }
+
+  labels {
+    label = "managed_by"
+    value = "terraform"
+  }
+}

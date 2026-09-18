@@ -1,9 +1,46 @@
-variable "filename" {
-  type    = string
-  default = "balram.txt"
+variable "container_name" {
+  description = "Name of the Docker container"
+  type        = string
+  default     = "terraform-nginx"
 }
 
-variable "content" {
-  type    = string
-  default = "Hello from Terraform"
+variable "network_name" {
+  description = "Name of the Docker network"
+  type        = string
+  default     = "terraform-app-network"
+}
+
+variable "external_port" {
+  description = "External port for Nginx"
+  type        = number
+  default     = 8080
+}
+
+variable "internal_port" {
+  description = "Internal Nginx container port"
+  type        = number
+  default     = 80
+}
+
+variable "nginx_image" {
+  description = "Docker image for Nginx"
+  type        = string
+  default     = "nginx:latest"
+}
+
+variable "container_count" {
+  description = "Number of Nginx containers for count example"
+  type        = number
+  default     = 3
+}
+
+variable "containers" {
+  description = "Nginx containers with their external ports"
+  type        = map(number)
+
+  default = {
+    frontend = 8080
+    backend  = 8081
+    admin    = 8082
+  }
 }
