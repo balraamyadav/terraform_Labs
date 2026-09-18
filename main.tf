@@ -10,15 +10,15 @@ terraform {
 provider "docker" {}
 
 resource "docker_network" "app_network" {
-  name = "terraform-app-network"
+  name = var.network_name
 }
 
 resource "docker_image" "nginx" {
-  name = "nginx:latest"
+  name = var.nginx_image
 }
 
 resource "docker_container" "nginx" {
-  name  = "terraform-nginx"
+  name  = var.container_name
   image = docker_image.nginx.image_id
 
   networks_advanced {
@@ -26,7 +26,7 @@ resource "docker_container" "nginx" {
   }
 
   ports {
-    internal = 80
-    external = 8080
+    internal = var.internal_port
+    external = var.external_port
   }
 }
