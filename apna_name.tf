@@ -26,7 +26,7 @@ provider "azurerm" {
 # }
 
 resource "azurerm_resource_group" "rg1" {
-  name     = "rutuja"
+  name     = "rutuja1"
   location = "West Europe"
 }
 
