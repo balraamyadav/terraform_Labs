@@ -141,6 +141,10 @@ stages:
 # 4. SUPER LINTER
 # =====================================================
 
+# =====================================================
+# 4. SUPER LINTER
+# =====================================================
+
 - stage: SuperLinter
   displayName: Super Linter
 
@@ -155,6 +159,7 @@ stages:
     steps:
     - checkout: self
       fetchDepth: 0
+      persistCredentials: true
 
     - bash: |
         set -e
@@ -166,10 +171,11 @@ stages:
         docker --version
 
         echo "================================="
-        echo "Current Branch"
+        echo "Workspace"
         echo "================================="
 
-        git branch --show-current
+        pwd
+        ls -la
 
         echo "================================="
         echo "Terraform Files"
@@ -192,7 +198,6 @@ stages:
         docker run --rm \
           --platform linux/amd64 \
           -e RUN_LOCAL=true \
-          -e DEFAULT_BRANCH=main \
           -e VALIDATE_ALL_CODEBASE=true \
           -e VALIDATE_TERRAFORM=true \
           -e DEFAULT_WORKSPACE=/tmp/lint \
@@ -200,8 +205,6 @@ stages:
           ghcr.io/super-linter/super-linter:latest
 
       displayName: Run Super Linter
-
-
 # =====================================================
 # 5. TERRATEST
 # =====================================================
