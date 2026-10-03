@@ -145,6 +145,72 @@ stages:
 # 4. SUPER LINTER
 # =====================================================
 
+# - stage: SuperLinter
+#   displayName: Super Linter
+
+#   dependsOn: []
+
+#   condition: succeeded()
+
+#   jobs:
+#   - job: SuperLinter
+#     displayName: Run Super Linter
+
+#     steps:
+#     - checkout: self
+#       fetchDepth: 0
+#       persistCredentials: true
+
+#     - bash: |
+#         set -e
+
+#         echo "================================="
+#         echo "Docker Version"
+#         echo "================================="
+
+#         docker --version
+
+#         echo "================================="
+#         echo "Workspace"
+#         echo "================================="
+
+#         pwd
+#         ls -la
+
+#         echo "================================="
+#         echo "Terraform Files"
+#         echo "================================="
+
+#         find . -type f -name "*.tf" -print
+
+#         echo "================================="
+#         echo "Pulling Super Linter"
+#         echo "================================="
+
+#         docker pull \
+#           --platform linux/amd64 \
+#           ghcr.io/super-linter/super-linter:latest
+
+#         echo "================================="
+#         echo "Running Super Linter"
+#         echo "================================="
+
+#         docker run --rm \
+#           --platform linux/amd64 \
+#           -e RUN_LOCAL=true \
+#           -e VALIDATE_ALL_CODEBASE=true \
+#           -e VALIDATE_TERRAFORM=true \
+#           -e DEFAULT_WORKSPACE=/tmp/lint \
+#           -v "$(System.DefaultWorkingDirectory):/tmp/lint" \
+#           ghcr.io/super-linter/super-linter:latest
+
+#       displayName: Run Super Linter
+
+
+# =====================================================
+# 4. SUPER LINTER
+# =====================================================
+
 - stage: SuperLinter
   displayName: Super Linter
 
@@ -171,11 +237,22 @@ stages:
         docker --version
 
         echo "================================="
-        echo "Workspace"
+        echo "Git Branches"
         echo "================================="
 
-        pwd
-        ls -la
+        git branch -a
+
+        echo "================================="
+        echo "Fetching main branch"
+        echo "================================="
+
+        git fetch origin main:refs/remotes/origin/main
+
+        echo "================================="
+        echo "Checking main branch"
+        echo "================================="
+
+        git branch -a
 
         echo "================================="
         echo "Terraform Files"
@@ -198,6 +275,7 @@ stages:
         docker run --rm \
           --platform linux/amd64 \
           -e RUN_LOCAL=true \
+          -e DEFAULT_BRANCH=main \
           -e VALIDATE_ALL_CODEBASE=true \
           -e VALIDATE_TERRAFORM=true \
           -e DEFAULT_WORKSPACE=/tmp/lint \
@@ -205,6 +283,8 @@ stages:
           ghcr.io/super-linter/super-linter:latest
 
       displayName: Run Super Linter
+
+
 # =====================================================
 # 5. TERRATEST
 # =====================================================
