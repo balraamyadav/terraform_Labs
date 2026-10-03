@@ -19,6 +19,7 @@ stages:
 # =====================================================
 # 1. TFLINT
 # =====================================================
+
 - stage: TFLint
   displayName: TFLint
 
@@ -32,13 +33,22 @@ stages:
     - bash: |
         set -e
 
-        echo "TFLint version:"
+        echo "================================="
+        echo "TFLint Version"
+        echo "================================="
+
         tflint --version
 
-        echo "Initializing TFLint:"
+        echo "================================="
+        echo "TFLint Init"
+        echo "================================="
+
         tflint --init
 
-        echo "Running TFLint:"
+        echo "================================="
+        echo "Running TFLint"
+        echo "================================="
+
         tflint
 
       displayName: Run TFLint
@@ -47,11 +57,11 @@ stages:
 # =====================================================
 # 2. TFSEC
 # =====================================================
+
 - stage: Tfsec
   displayName: Terraform Security Scan
 
-  dependsOn:
-  - TFLint
+  dependsOn: []
 
   condition: succeeded()
 
@@ -65,10 +75,16 @@ stages:
     - bash: |
         set -e
 
-        echo "tfsec version:"
+        echo "================================="
+        echo "tfsec Version"
+        echo "================================="
+
         tfsec --version
 
-        echo "Running tfsec:"
+        echo "================================="
+        echo "Running tfsec"
+        echo "================================="
+
         tfsec .
 
       displayName: Run tfsec
@@ -77,11 +93,11 @@ stages:
 # =====================================================
 # 3. TERRASCAN
 # =====================================================
+
 - stage: Terrascan
   displayName: Terrascan Security Scan
 
-  dependsOn:
-  - TFLint
+  dependsOn: []
 
   condition: succeeded()
 
@@ -97,13 +113,21 @@ stages:
 
         cd "$(System.DefaultWorkingDirectory)"
 
-        echo "Terrascan version:"
+        echo "================================="
+        echo "Terrascan Version"
+        echo "================================="
+
         terrascan version
 
-        echo "Terraform files:"
+        echo "================================="
+        echo "Terraform Files"
+        echo "================================="
+
         find . -maxdepth 1 -type f -name "*.tf" -print
 
-        echo "Running Terrascan:"
+        echo "================================="
+        echo "Running Terrascan"
+        echo "================================="
 
         terrascan scan \
           -i terraform \
@@ -116,11 +140,11 @@ stages:
 # =====================================================
 # 4. SUPER LINTER
 # =====================================================
+
 - stage: SuperLinter
   displayName: Super Linter
 
-  dependsOn:
-  - TFLint
+  dependsOn: []
 
   condition: succeeded()
 
@@ -130,17 +154,50 @@ stages:
 
     steps:
     - checkout: self
+      fetchDepth: 0
 
     - bash: |
         set -e
 
+        echo "================================="
+        echo "Docker Version"
+        echo "================================="
+
         docker --version
 
+        echo "================================="
+        echo "Current Branch"
+        echo "================================="
+
+        git branch --show-current
+
+        echo "================================="
+        echo "Terraform Files"
+        echo "================================="
+
+        find . -type f -name "*.tf" -print
+
+        echo "================================="
+        echo "Pulling Super Linter"
+        echo "================================="
+
+        docker pull \
+          --platform linux/amd64 \
+          ghcr.io/super-linter/super-linter:latest
+
+        echo "================================="
+        echo "Running Super Linter"
+        echo "================================="
+
         docker run --rm \
+          --platform linux/amd64 \
           -e RUN_LOCAL=true \
+          -e DEFAULT_BRANCH=main \
+          -e VALIDATE_ALL_CODEBASE=true \
           -e VALIDATE_TERRAFORM=true \
+          -e DEFAULT_WORKSPACE=/tmp/lint \
           -v "$(System.DefaultWorkingDirectory):/tmp/lint" \
-          ghcr.io/super-linter/super-linter:slim
+          ghcr.io/super-linter/super-linter:latest
 
       displayName: Run Super Linter
 
@@ -148,6 +205,7 @@ stages:
 # =====================================================
 # 5. TERRATEST
 # =====================================================
+
 - stage: Terratest
   displayName: Terratest
 
@@ -169,15 +227,24 @@ stages:
     - bash: |
         set -e
 
-        echo "Go version:"
+        echo "================================="
+        echo "Go Version"
+        echo "================================="
+
         go version
 
         cd tests
 
-        echo "Downloading Go dependencies:"
+        echo "================================="
+        echo "Downloading Go Dependencies"
+        echo "================================="
+
         go mod download
 
-        echo "Running Terratest:"
+        echo "================================="
+        echo "Running Terratest"
+        echo "================================="
+
         go test -v ./...
 
       displayName: Run Terratest
@@ -186,6 +253,7 @@ stages:
 # =====================================================
 # 6. OPENCOST
 # =====================================================
+
 - stage: OpenCost
   displayName: OpenCost
 
@@ -204,26 +272,37 @@ stages:
     - bash: |
         set -e
 
-        echo "Checking Docker:"
+        echo "================================="
+        echo "Docker Version"
+        echo "================================="
+
         docker --version
 
-        echo "Pulling OpenCost:"
-        docker pull ghcr.io/super-linter/super-linter:latest
+        echo "================================="
+        echo "Pulling OpenCost Image"
+        echo "================================="
 
-        echo "OpenCost image:"
+        docker pull \
+          --platform linux/amd64 \
+          quay.io/kubecost1/opencost:latest
+
+        echo "================================="
+        echo "OpenCost Image"
+        echo "================================="
+
         docker images quay.io/kubecost1/opencost
 
-      displayName: Run OpenCost
+      displayName: Validate OpenCost Image
 
 
 # =====================================================
 # 7. TERRAFORM PLAN
 # =====================================================
+
 - stage: TerraformPlan
   displayName: Terraform Plan
 
   dependsOn:
-  - Terratest
   - OpenCost
 
   condition: succeeded()
@@ -238,7 +317,15 @@ stages:
     - bash: |
         set -e
 
+        echo "================================="
+        echo "Terraform Version"
+        echo "================================="
+
         terraform version
+
+        echo "================================="
+        echo "Terraform Init"
+        echo "================================="
 
         terraform init
 
@@ -248,6 +335,10 @@ stages:
     - bash: |
         set -e
 
+        echo "================================="
+        echo "Terraform Validate"
+        echo "================================="
+
         terraform validate
 
       displayName: Terraform Validate
@@ -255,6 +346,10 @@ stages:
 
     - bash: |
         set -e
+
+        echo "================================="
+        echo "Terraform Plan"
+        echo "================================="
 
         terraform plan -out=tfplan
 
@@ -264,10 +359,13 @@ stages:
     - publish: $(System.DefaultWorkingDirectory)/tfplan
       artifact: terraform-plan
 
+      displayName: Publish Terraform Plan
+
 
 # =====================================================
 # 8. MANUAL APPROVAL
 # =====================================================
+
 - stage: ManualApproval
   displayName: Manual Approval
 
@@ -287,14 +385,19 @@ stages:
       runOnce:
         deploy:
           steps:
+
           - script: |
-              echo "Approval completed."
+              echo "================================="
+              echo "Manual Approval Completed"
+              echo "================================="
+
             displayName: Approval Completed
 
 
 # =====================================================
 # 9. TERRAFORM APPLY
 # =====================================================
+
 - stage: TerraformApply
   displayName: Terraform Apply
 
@@ -308,6 +411,7 @@ stages:
     displayName: Apply Approved Plan
 
     steps:
+
     - checkout: self
 
 
@@ -318,7 +422,15 @@ stages:
     - bash: |
         set -e
 
+        echo "================================="
+        echo "Terraform Version"
+        echo "================================="
+
         terraform version
+
+        echo "================================="
+        echo "Terraform Init"
+        echo "================================="
 
         terraform init
 
@@ -328,7 +440,9 @@ stages:
     - bash: |
         set -e
 
-        echo "Applying approved Terraform plan:"
+        echo "================================="
+        echo "Applying Approved Terraform Plan"
+        echo "================================="
 
         terraform apply \
           -auto-approve \
