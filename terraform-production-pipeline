@@ -83,28 +83,28 @@ stages:
 # # =====================================================
 # # 3. TERRASCAN
 # # =====================================================
-# - stage: Terrascan
-#   displayName: Terrascan Security Scan
-#   dependsOn: TFLint
+- stage: Terrascan
+  displayName: Terrascan Security Scan
+  dependsOn: TFLint
 
-#   condition: succeeded()
+  condition: succeeded()
 
-#   jobs:
-#   - job: Terrascan
-#     displayName: Run Terrascan
+  jobs:
+  - job: Terrascan
+    displayName: Run Terrascan
 
-#     steps:
-#     - checkout: self
+    steps:
+    - checkout: self
 
-#     - script: |
-#         set -e
+    - script: |
+        set -e
 
-#         echo "====================================="
-#         echo "Terrascan Security Scan"
-#         echo "====================================="
+        echo "====================================="
+        echo "Terrascan Security Scan"
+        echo "====================================="
 
-#         echo "Working directory:"
-#         pwd
+        echo "Working directory:"
+        pwd
 
 #         echo "Terraform files:"
 #         find . -maxdepth 1 -name "*.tf" -print
@@ -123,46 +123,6 @@ stages:
 
 #       displayName: Run Terrascan
 
-- stage: Terrascan
-  displayName: Terrascan Security Scan
-
-  dependsOn:
-  - TFLint
-
-  condition: succeeded()
-
-  jobs:
-  - job: Terrascan
-    displayName: IaC Security Scan
-
-    steps:
-    - checkout: self
-
-    - bash: |
-        set -e
-
-        echo "========================================"
-        echo " TERRASCAN SECURITY SCAN"
-        echo "========================================"
-
-        cd "$(System.DefaultWorkingDirectory)"
-
-        echo "Terraform files:"
-        find . -maxdepth 1 -type f -name "*.tf" -print
-
-        echo ""
-        echo "Terrascan version:"
-        terrascan version
-
-        echo ""
-        echo "Running Terrascan..."
-
-        terrascan scan \
-          -i terraform \
-          -d . \
-          --non-recursive
-
-      displayName: Run Terrascan      
 
 # =====================================================
 # 4. SUPER LINTER
