@@ -208,7 +208,7 @@ stages:
         docker --version
 
         echo "Pulling OpenCost:"
-        docker pull quay.io/kubecost1/opencost:latest
+        docker pull ghcr.io/super-linter/super-linter:latest
 
         echo "OpenCost image:"
         docker images quay.io/kubecost1/opencost
