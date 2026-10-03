@@ -63,21 +63,64 @@ stages:
 # =====================================================
 # 3. TERRASCAN
 # =====================================================
+# - stage: Terrascan
+#   displayName: Terrascan Security
+#   dependsOn: TFLint
+
+#   jobs:
+#   - job: Terrascan
+#     steps:
+#     - script: |
+#         echo "Current directory:"
+#         pwd
+
+#         echo "Terraform files:"
+#         ls -la
+
+#         terrascan scan -i terraform
+#       displayName: Run Terrascan
+
+# =====================================================
+# 3. TERRASCAN
+# =====================================================
 - stage: Terrascan
-  displayName: Terrascan Security
+  displayName: Terrascan Security Scan
   dependsOn: TFLint
+
+  condition: succeeded()
 
   jobs:
   - job: Terrascan
+    displayName: Run Terrascan
+
     steps:
+    - checkout: self
+
     - script: |
-        echo "Current directory:"
+        set -e
+
+        echo "====================================="
+        echo "Terrascan Security Scan"
+        echo "====================================="
+
+        echo "Working directory:"
         pwd
 
         echo "Terraform files:"
-        ls -la
+        find . -maxdepth 1 -name "*.tf" -print
 
-        terrascan scan -i terraform
+        echo "Terrascan version:"
+        terrascan version
+
+        echo "Initializing Terrascan:"
+        terrascan init
+
+        echo "Running Terraform security scan:"
+        terrascan scan \
+          -i terraform \
+          -d "$(System.DefaultWorkingDirectory)" \
+          --non-recursive
+
       displayName: Run Terrascan
 
 # =====================================================
