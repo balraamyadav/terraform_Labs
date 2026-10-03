@@ -51,16 +51,34 @@ stages:
 # =====================================================
 # 3. TERRASCAN
 # =====================================================
+# - stage: Terrascan
+#   displayName: Terrascan Security
+#   dependsOn: TFLint
+#   jobs:
+#   - job: Terrascan
+#     steps:
+#     - script: |
+#         terrascan scan -i terraform
+#       displayName: Run Terrascan
+# =====================================================
+# 3. TERRASCAN
+# =====================================================
 - stage: Terrascan
   displayName: Terrascan Security
   dependsOn: TFLint
+
   jobs:
   - job: Terrascan
     steps:
     - script: |
+        echo "Current directory:"
+        pwd
+
+        echo "Terraform files:"
+        ls -la
+
         terrascan scan -i terraform
       displayName: Run Terrascan
-
 
 # =====================================================
 # 4. SUPER LINTER
