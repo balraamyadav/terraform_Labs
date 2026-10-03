@@ -77,6 +77,22 @@ stages:
       displayName: Terraform Lint Check
 
 
+# # =====================================================
+# # 5. TERRATEST
+# # =====================================================
+# - stage: Terratest
+#   displayName: Terratest
+#   dependsOn:
+#   - TFLint
+#   - Tfsec
+#   - Terrascan
+#   jobs:
+#   - job: Terratest
+#     steps:
+#     - script: |
+#         cd tests
+#         go test -v
+#       displayName: Run Terratest
 # =====================================================
 # 5. TERRATEST
 # =====================================================
@@ -86,14 +102,26 @@ stages:
   - TFLint
   - Tfsec
   - Terrascan
+
+  condition: succeeded()
+
   jobs:
   - job: Terratest
+    displayName: Run Terratest
+
     steps:
+
     - script: |
+        echo "Go version:"
+        go version
+
+        echo "Running Terratest..."
         cd tests
+        go mod tidy
         go test -v
       displayName: Run Terratest
 
+      
 
 # =====================================================
 # 6. OPENCOST
