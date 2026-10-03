@@ -1,0 +1,185 @@
+trigger:
+- main
+- feature/*
+
+pool:
+  name: MacBook-Agent-Pool
+
+parameters:
+- name: environment
+  displayName: Environment
+  type: string
+  default: dev
+  values:
+  - dev
+  - prod
+
+variables:
+- name: TF_VERSION
+  value: '1.9.8'
+
+stages:
+
+# =====================================================
+# 1. TFLINT
+# =====================================================
+- stage: TFLint
+  displayName: TFLint
+  jobs:
+  - job: TFLint
+    steps:
+    - script: |
+        tflint --init
+        tflint
+      displayName: Run TFLint
+
+
+# =====================================================
+# 2. TFSEC
+# =====================================================
+- stage: Tfsec
+  displayName: Terraform Security Scan
+  dependsOn: TFLint
+  jobs:
+  - job: Tfsec
+    steps:
+    - script: |
+        tfsec .
+      displayName: Run tfsec
+
+
+# =====================================================
+# 3. TERRASCAN
+# =====================================================
+- stage: Terrascan
+  displayName: Terrascan Security
+  dependsOn: TFLint
+  jobs:
+  - job: Terrascan
+    steps:
+    - script: |
+        terrascan scan -i terraform
+      displayName: Run Terrascan
+
+
+# =====================================================
+# 4. SUPER LINTER
+# =====================================================
+- stage: SuperLinter
+  displayName: Super Linter
+  dependsOn: TFLint
+  jobs:
+  - job: SuperLinter
+    steps:
+    - script: |
+        echo "Running Super Linter"
+        terraform fmt -check -recursive
+      displayName: Terraform Lint Check
+
+
+# =====================================================
+# 5. TERRATEST
+# =====================================================
+- stage: Terratest
+  displayName: Terratest
+  dependsOn:
+  - TFLint
+  - Tfsec
+  - Terrascan
+  jobs:
+  - job: Terratest
+    steps:
+    - script: |
+        cd tests
+        go test -v
+      displayName: Run Terratest
+
+
+# =====================================================
+# 6. OPENCOST
+# =====================================================
+- stage: OpenCost
+  displayName: OpenCost
+  dependsOn:
+  - Tfsec
+  - Terrascan
+  condition: succeeded()
+  jobs:
+  - job: OpenCost
+    steps:
+    - script: |
+        echo "OpenCost stage"
+        echo "Cost estimation would run here"
+      displayName: OpenCost
+
+
+# =====================================================
+# 7. TERRAFORM PLAN
+# =====================================================
+- stage: TerraformPlan
+  displayName: Terraform Plan
+  dependsOn:
+  - Terratest
+  - OpenCost
+
+  condition: succeeded()
+
+  jobs:
+  - job: Plan
+    steps:
+
+    - script: |
+        terraform init
+      displayName: Terraform Init
+
+    - script: |
+        terraform validate
+      displayName: Terraform Validate
+
+    - script: |
+        terraform plan -out=tfplan
+      displayName: Terraform Plan
+
+    - publish: tfplan
+      artifact: terraform-plan
+
+
+# =====================================================
+# 8. MANUAL APPROVAL
+# =====================================================
+- stage: ManualApproval
+  displayName: Manual Approval
+  dependsOn: TerraformPlan
+  condition: succeeded()
+
+  jobs:
+  - deployment: Approval
+    environment: terraform-prod
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - script: |
+              echo "Manual approval completed"
+            displayName: Approval
+
+
+# =====================================================
+# 9. TERRAFORM APPLY
+# =====================================================
+- stage: TerraformApply
+  displayName: Terraform Apply
+  dependsOn: ManualApproval
+  condition: succeeded()
+
+  jobs:
+  - job: Apply
+    steps:
+
+    - script: |
+        terraform init
+      displayName: Terraform Init
+
+    - script: |
+        terraform apply -auto-approve
+      displayName: Terraform Apply
