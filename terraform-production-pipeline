@@ -14,10 +14,6 @@ parameters:
   - dev
   - prod
 
-# variables:
-# - name: TF_VERSION
-#   value: '1.9.8'
-
 stages:
 
 # =====================================================
@@ -25,12 +21,26 @@ stages:
 # =====================================================
 - stage: TFLint
   displayName: TFLint
+
   jobs:
   - job: TFLint
+    displayName: Run TFLint
+
     steps:
-    - script: |
+    - checkout: self
+
+    - bash: |
+        set -e
+
+        echo "TFLint version:"
+        tflint --version
+
+        echo "Initializing TFLint:"
         tflint --init
+
+        echo "Running TFLint:"
         tflint
+
       displayName: Run TFLint
 
 
@@ -39,53 +49,39 @@ stages:
 # =====================================================
 - stage: Tfsec
   displayName: Terraform Security Scan
-  dependsOn: TFLint
+
+  dependsOn:
+  - TFLint
+
+  condition: succeeded()
+
   jobs:
   - job: Tfsec
+    displayName: Run tfsec
+
     steps:
-    - script: |
+    - checkout: self
+
+    - bash: |
+        set -e
+
+        echo "tfsec version:"
+        tfsec --version
+
+        echo "Running tfsec:"
         tfsec .
+
       displayName: Run tfsec
 
 
 # =====================================================
 # 3. TERRASCAN
 # =====================================================
-# - stage: Terrascan
-#   displayName: Terrascan Security
-#   dependsOn: TFLint
-#   jobs:
-#   - job: Terrascan
-#     steps:
-#     - script: |
-#         terrascan scan -i terraform
-#       displayName: Run Terrascan
-# =====================================================
-# 3. TERRASCAN
-# =====================================================
-# - stage: Terrascan
-#   displayName: Terrascan Security
-#   dependsOn: TFLint
-
-# #   jobs:
-# #   - job: Terrascan
-# #     steps:
-# #     - script: |
-# #         echo "Current directory:"
-# #         pwd
-
-# #         echo "Terraform files:"
-# #         ls -la
-
-# #         terrascan scan -i terraform
-# #       displayName: Run Terrascan
-
-# # =====================================================
-# # 3. TERRASCAN
-# # =====================================================
 - stage: Terrascan
   displayName: Terrascan Security Scan
-  dependsOn: TFLint
+
+  dependsOn:
+  - TFLint
 
   condition: succeeded()
 
@@ -96,32 +92,25 @@ stages:
     steps:
     - checkout: self
 
-    - script: |
+    - bash: |
         set -e
 
-        echo "====================================="
-        echo "Terrascan Security Scan"
-        echo "====================================="
+        cd "$(System.DefaultWorkingDirectory)"
 
-        echo "Working directory:"
-        pwd
+        echo "Terrascan version:"
+        terrascan version
 
-#         echo "Terraform files:"
-#         find . -maxdepth 1 -name "*.tf" -print
+        echo "Terraform files:"
+        find . -maxdepth 1 -type f -name "*.tf" -print
 
-#         echo "Terrascan version:"
-#         terrascan version
+        echo "Running Terrascan:"
 
-#         echo "Initializing Terrascan:"
-#         terrascan init
+        terrascan scan \
+          -i terraform \
+          -d . \
+          --non-recursive
 
-#         echo "Running Terraform security scan:"
-#         terrascan scan \
-#           -i terraform \
-#           -d "$(System.DefaultWorkingDirectory)" \
-#           --non-recursive
-
-#       displayName: Run Terrascan
+      displayName: Run Terrascan
 
 
 # =====================================================
@@ -129,41 +118,44 @@ stages:
 # =====================================================
 - stage: SuperLinter
   displayName: Super Linter
-  dependsOn: TFLint
+
+  dependsOn:
+  - TFLint
+
+  condition: succeeded()
+
   jobs:
   - job: SuperLinter
+    displayName: Run Super Linter
+
     steps:
-    - script: |
-        echo "Running Super Linter"
-        terraform fmt -check -recursive
-      displayName: Terraform Lint Check
+    - checkout: self
+
+    - bash: |
+        set -e
+
+        docker --version
+
+        docker run --rm \
+          -e RUN_LOCAL=true \
+          -e VALIDATE_TERRAFORM=true \
+          -v "$(System.DefaultWorkingDirectory):/tmp/lint" \
+          ghcr.io/super-linter/super-linter:slim
+
+      displayName: Run Super Linter
 
 
-# # =====================================================
-# # 5. TERRATEST
-# # =====================================================
-# - stage: Terratest
-#   displayName: Terratest
-#   dependsOn:
-#   - TFLint
-#   - Tfsec
-#   - Terrascan
-#   jobs:
-#   - job: Terratest
-#     steps:
-#     - script: |
-#         cd tests
-#         go test -v
-#       displayName: Run Terratest
 # =====================================================
 # 5. TERRATEST
 # =====================================================
 - stage: Terratest
   displayName: Terratest
+
   dependsOn:
   - TFLint
   - Tfsec
   - Terrascan
+  - SuperLinter
 
   condition: succeeded()
 
@@ -172,35 +164,56 @@ stages:
     displayName: Run Terratest
 
     steps:
+    - checkout: self
 
-    - script: |
+    - bash: |
+        set -e
+
         echo "Go version:"
         go version
 
-        echo "Running Terratest..."
         cd tests
-        go mod tidy
-        go test -v
+
+        echo "Downloading Go dependencies:"
+        go mod download
+
+        echo "Running Terratest:"
+        go test -v ./...
+
       displayName: Run Terratest
 
-      
 
 # =====================================================
 # 6. OPENCOST
 # =====================================================
 - stage: OpenCost
   displayName: OpenCost
+
   dependsOn:
-  - Tfsec
-  - Terrascan
+  - Terratest
+
   condition: succeeded()
+
   jobs:
   - job: OpenCost
+    displayName: Run OpenCost
+
     steps:
-    - script: |
-        echo "OpenCost stage"
-        echo "Cost estimation would run here"
-      displayName: OpenCost
+    - checkout: self
+
+    - bash: |
+        set -e
+
+        echo "Checking Docker:"
+        docker --version
+
+        echo "Pulling OpenCost:"
+        docker pull quay.io/kubecost1/opencost:latest
+
+        echo "OpenCost image:"
+        docker images quay.io/kubecost1/opencost
+
+      displayName: Run OpenCost
 
 
 # =====================================================
@@ -208,6 +221,7 @@ stages:
 # =====================================================
 - stage: TerraformPlan
   displayName: Terraform Plan
+
   dependsOn:
   - Terratest
   - OpenCost
@@ -216,21 +230,38 @@ stages:
 
   jobs:
   - job: Plan
-    steps:
+    displayName: Terraform Plan
 
-    - script: |
+    steps:
+    - checkout: self
+
+    - bash: |
+        set -e
+
+        terraform version
+
         terraform init
+
       displayName: Terraform Init
 
-    - script: |
+
+    - bash: |
+        set -e
+
         terraform validate
+
       displayName: Terraform Validate
 
-    - script: |
+
+    - bash: |
+        set -e
+
         terraform plan -out=tfplan
+
       displayName: Terraform Plan
 
-    - publish: tfplan
+
+    - publish: $(System.DefaultWorkingDirectory)/tfplan
       artifact: terraform-plan
 
 
@@ -239,19 +270,26 @@ stages:
 # =====================================================
 - stage: ManualApproval
   displayName: Manual Approval
-  dependsOn: TerraformPlan
+
+  dependsOn:
+  - TerraformPlan
+
   condition: succeeded()
 
   jobs:
   - deployment: Approval
+
+    displayName: Production Approval
+
     environment: terraform-prod
+
     strategy:
       runOnce:
         deploy:
           steps:
           - script: |
-              echo "Manual approval completed"
-            displayName: Approval
+              echo "Approval completed."
+            displayName: Approval Completed
 
 
 # =====================================================
@@ -259,17 +297,41 @@ stages:
 # =====================================================
 - stage: TerraformApply
   displayName: Terraform Apply
-  dependsOn: ManualApproval
+
+  dependsOn:
+  - ManualApproval
+
   condition: succeeded()
 
   jobs:
   - job: Apply
-    steps:
+    displayName: Apply Approved Plan
 
-    - script: |
+    steps:
+    - checkout: self
+
+
+    - download: current
+      artifact: terraform-plan
+
+
+    - bash: |
+        set -e
+
+        terraform version
+
         terraform init
+
       displayName: Terraform Init
 
-    - script: |
-        terraform apply -auto-approve
+
+    - bash: |
+        set -e
+
+        echo "Applying approved Terraform plan:"
+
+        terraform apply \
+          -auto-approve \
+          "$(Pipeline.Workspace)/terraform-plan/tfplan"
+
       displayName: Terraform Apply
