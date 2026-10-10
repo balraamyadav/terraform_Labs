@@ -5,6 +5,7 @@ resource "azurerm_resource_group" "balram_rg0" {
 }
 
 resource "azurerm_storage_account" "balram_stg0" {
+  depends_on               = [azurerm_resource_group.balram_rg0]
   name                     = "storageaccountbalram0"
   resource_group_name      = azurerm_resource_group.balram_rg0.name
   location                 = azurerm_resource_group.balram_rg0.location
@@ -20,3 +21,16 @@ resource "azurerm_storage_container" "balram_container0" {
   container_access_type = "private" # Options: private, blob, container
 }
 
+
+resource "azurerm_resource_group" "explicit_rg" {
+  name     = "explicitely-balram-rg-demo"
+  location = "West India"
+}
+
+resource "terraform_data" "dependency_demo" {
+  input = "Resource Group dependency test"
+
+  depends_on = [
+    azurerm_resource_group.explicit_rg
+  ]
+}
