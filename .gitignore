@@ -3,3 +3,12 @@
 *.tfstate.*
 crash.log
 crash.*.log
+
+# Terraform generated files and sensitive state
+*.tfstate
+*.tfstate.*
+terraform.state
+terraform.tfstate
+terraform.tfstate.backup
+.terraform/
+*.tfplan
